@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, GraduationCap, Calculator, Trash2, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -13,33 +13,110 @@ interface Student {
   rank?: number;
 }
 
+interface AppState {
+  subjects: string[];
+  additionalSubjects: string[];
+  students: Student[];
+}
+
+// Keys for localStorage
+const STORAGE_KEY = 'studentRankingSystem';
+
 export default function StudentRanking() {
-  const [subjects, setSubjects] = useState([
-    "English Language",
-    "English Literature",
-    "Second Language",
-    "Environmental Science",
-    "Mathematics",
-    "Computer"
-  ]);
-
-  const [additionalSubjects, setAdditionalSubjects] = useState([
-    "Spelling and Dictation",
-    "Reading",
-    "Conversation",
-    "Moral Science"
-  ]);
-
+  // Initialize state with loading function
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [additionalSubjects, setAdditionalSubjects] = useState<string[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [newSubject, setNewSubject] = useState("");
   const [newAdditionalSubject, setNewAdditionalSubject] = useState("");
-  const [students, setStudents] = useState<Student[]>([]);
   const [toastMessage, setToastMessage] = useState<{ title: string; description: string } | null>(null);
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const loadSavedData = () => {
+      try {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          const parsedData: AppState = JSON.parse(savedData);
+          setSubjects(parsedData.subjects);
+          setAdditionalSubjects(parsedData.additionalSubjects);
+          setStudents(parsedData.students);
+        } else {
+          // Set default values if no saved data exists
+          setSubjects([
+            "English Language",
+            "English Literature",
+            "Second Language",
+            "Environmental Science",
+            "Mathematics",
+            "Computer"
+          ]);
+          setAdditionalSubjects([
+            "Spelling and Dictation",
+            "Reading",
+            "Conversation",
+            "Moral Science"
+          ]);
+        }
+      } catch (error) {
+        console.error('Error loading saved data:', error);
+        showToast("Error", "Failed to load saved data");
+      }
+    };
+
+    loadSavedData();
+  }, []);
+
+  // Save data whenever state changes
+  useEffect(() => {
+    const saveData = () => {
+      try {
+        const dataToSave: AppState = {
+          subjects,
+          additionalSubjects,
+          students
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+      } catch (error) {
+        console.error('Error saving data:', error);
+        showToast("Error", "Failed to save data");
+      }
+    };
+
+    // Only save if the states are initialized (not empty arrays from initial render)
+    if (subjects.length > 0 || additionalSubjects.length > 0 || students.length > 0) {
+      saveData();
+    }
+  }, [subjects, additionalSubjects, students]);
 
   const TOTAL_POSSIBLE_MARKS = (subjects.length * 100) + (additionalSubjects.length * 100);
 
   const showToast = (title: string, description: string) => {
     setToastMessage({ title, description });
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Add function to clear all data
+  const clearAllData = () => {
+    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      setSubjects([
+        "English Language",
+        "English Literature",
+        "Second Language",
+        "Environmental Science",
+        "Mathematics",
+        "Computer"
+      ]);
+      setAdditionalSubjects([
+        "Spelling and Dictation",
+        "Reading",
+        "Conversation",
+        "Moral Science"
+      ]);
+      setStudents([]);
+      showToast("Data Cleared", "All data has been reset to default");
+    }
   };
 
   const handleAddSubject = () => {
@@ -279,6 +356,16 @@ export default function StudentRanking() {
             <GraduationCap className="h-8 w-8" />
             Student Ranking System
           </h1>
+        </div>
+        <div className="p-4 border-b bg-gray-50">
+          <div className="flex justify-end">
+            <button
+              onClick={clearAllData}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+            >
+              Reset to Default
+            </button>
+          </div>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
