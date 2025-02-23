@@ -10,7 +10,6 @@ import {
   CheckCircle2, 
   BarChart3, 
   FileSpreadsheet,
-  Download,
   Settings,
   Clock
 } from "lucide-react";
