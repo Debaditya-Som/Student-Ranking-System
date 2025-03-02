@@ -18,35 +18,36 @@ const handleNavigation = () => {
     window.location.href = '/Ranking';
   };
 
+
 export default function HomePage() {
   const features = [
     {
-      icon: <BookOpen className="h-6 w-6 text-blue-500" />,
+      icon: <BookOpen className="h-6 w-6 text-purple-500" />,
       title: "Smart Subject Management",
       description: "Customize your curriculum with flexible subject management"
     },
     {
-      icon: <BarChart3 className="h-6 w-6 text-blue-500" />,
+      icon: <BarChart3 className="h-6 w-6 text-purple-500" />,
       title: "Real-time Analytics",
       description: "Get instant insights into student performance trends"
     },
     {
-      icon: <Award className="h-6 w-6 text-blue-500" />,
+      icon: <Award className="h-6 w-6 text-purple-500" />,
       title: "Advanced Ranking System",
       description: "Automated ranking with customizable criteria"
     },
     {
-      icon: <FileSpreadsheet className="h-6 w-6 text-blue-500" />,
+      icon: <FileSpreadsheet className="h-6 w-6 text-purple-500" />,
       title: "PDF Reports",
       description: "Generate comprehensive performance reports instantly"
     },
     {
-      icon: <Settings className="h-6 w-6 text-blue-500" />,
+      icon: <Settings className="h-6 w-6 text-purple-500" />,
       title: "Flexible Configuration",
       description: "Adapt the system to your institution's needs"
     },
     {
-      icon: <Clock className="h-6 w-6 text-blue-500" />,
+      icon: <Clock className="h-6 w-6 text-purple-500" />,
       title: "Time-Saving Tools",
       description: "Streamline your assessment workflow efficiently"
     }
@@ -127,6 +128,7 @@ export default function HomePage() {
                   className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors">
                   Learn More
                 </button>
+        
               </div>
             </div>
             <div className="md:w-1/2">
