@@ -96,6 +96,9 @@ export default function StudentRanking() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const handleNavigation = () => {
+    window.location.href = "/Super";  
+  }
   // Add function to clear all data
   const clearAllData = () => {
     if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
@@ -359,6 +362,12 @@ export default function StudentRanking() {
         </div>
         <div className="p-4 border-b bg-gray-50">
           <div className="flex justify-end">
+            <button
+              onClick={handleNavigation}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm mr-2"
+            >
+              Super Average
+            </button>
             <button
               onClick={clearAllData}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
