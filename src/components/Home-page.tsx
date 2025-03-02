@@ -17,7 +17,9 @@ import {
 const handleNavigation = () => {
     window.location.href = '/Ranking';
   };
-
+  const handleNavigationSuper = () => {
+    window.location.href = '/Super';
+  };
 
 export default function HomePage() {
   const features = [
@@ -124,9 +126,9 @@ export default function HomePage() {
                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
                   Start Ranking <ArrowRight className="h-5 w-5" />
                 </button>
-                <button  onClick={handleNavigation}
+                <button  onClick={handleNavigationSuper}
                   className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors">
-                  Learn More
+                  Super Average
                 </button>
         
               </div>
