@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useState, useEffect } from "react";
 import { Plus, GraduationCap, Calculator, Trash2, Download } from "lucide-react";
@@ -7,28 +7,54 @@ import autoTable from "jspdf-autotable";
 
 interface Student {
   name: string;
-  rollNumber: string;
-  halfYearlyMarks: number;
-  finalMarks: number;
-  averageMarks: number;
-  percentage: number;
+  marks: { subject: string; UT: number; Final: number; Total: number }[];
+  additionalMarks: { subject: string; UT: number; Final: number; Total: number }[];
+  totalMarks: number;
   rank?: number;
 }
 
-const STORAGE_KEY = 'studentRankingSystemSuper';
+
+interface AppState {
+  subjects: string[];
+  additionalSubjects: string[];
+  students: Student[];
+}
+
+const STORAGE_KEY = 'studentRankingSystem';
 
 export default function StudentRanking() {
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [additionalSubjects, setAdditionalSubjects] = useState<string[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [newSubject, setNewSubject] = useState("");
+  const [newAdditionalSubject, setNewAdditionalSubject] = useState("");
   const [toastMessage, setToastMessage] = useState<{ title: string; description: string } | null>(null);
 
-  // Load saved data on component mount
   useEffect(() => {
     const loadSavedData = () => {
       try {
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
-          const parsedData: Student[] = JSON.parse(savedData);
-          setStudents(parsedData);
+          const parsedData: AppState = JSON.parse(savedData);
+          setSubjects(parsedData.subjects);
+          setAdditionalSubjects(parsedData.additionalSubjects);
+          setStudents(parsedData.students);
+        } else {
+          // Set default values if no saved data exists
+          setSubjects([
+            "English Language",
+            "English Literature",
+            "Second Language",
+            "Environmental Science",
+            "Mathematics",
+            "Computer"
+          ]);
+          setAdditionalSubjects([
+            "Spelling and Dictation",
+            "Reading",
+            "Conversation",
+            "Moral Science"
+          ]);
         }
       } catch (error) {
         console.error('Error loading saved data:', error);
@@ -39,32 +65,129 @@ export default function StudentRanking() {
     loadSavedData();
   }, []);
 
+  // Save data whenever state changes
   useEffect(() => {
     const saveData = () => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+        const dataToSave: AppState = {
+          subjects,
+          additionalSubjects,
+          students
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
       } catch (error) {
         console.error('Error saving data:', error);
         showToast("Error", "Failed to save data");
       }
     };
 
-    if (students.length > 0) {
+    // Only save if the states are initialized (not empty arrays from initial render)
+    if (subjects.length > 0 || additionalSubjects.length > 0 || students.length > 0) {
       saveData();
     }
-  }, [students]);
+  }, [subjects, additionalSubjects, students]);
+
+  const TOTAL_POSSIBLE_MARKS = (subjects.length * 100) + (additionalSubjects.length * 100);
 
   const showToast = (title: string, description: string) => {
     setToastMessage({ title, description });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const handleNavigation = () => {
+    window.location.href = "/Super";  
+  }
+  // Add function to clear all data
   const clearAllData = () => {
     if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
       localStorage.removeItem(STORAGE_KEY);
+      setSubjects([
+        "English Language",
+        "English Literature",
+        "Second Language",
+        "Environmental Science",
+        "Mathematics",
+        "Computer"
+      ]);
+      setAdditionalSubjects([
+        "Spelling and Dictation",
+        "Reading",
+        "Conversation",
+        "Moral Science"
+      ]);
       setStudents([]);
       showToast("Data Cleared", "All data has been reset to default");
     }
+  };
+
+  const handleAddSubject = () => {
+    if (!newSubject.trim()) {
+      showToast("Invalid subject", "Please enter a subject name");
+      return;
+    }
+
+    if (subjects.includes(newSubject.trim())) {
+      showToast("Duplicate subject", "This subject already exists");
+      return;
+    }
+
+    setSubjects([...subjects, newSubject.trim()]);
+    setNewSubject("");
+
+    // Update all existing students with the new subject
+    setStudents(students.map(student => ({
+      ...student,
+      marks: [...student.marks, { subject: newSubject.trim(), UT: 0, Final: 0, Total: 0 }]
+    })));
+  };
+
+  const handleAddAdditionalSubject = () => {
+    if (!newAdditionalSubject.trim()) {
+      showToast("Invalid subject", "Please enter a subject name");
+      return;
+    }
+
+    if (additionalSubjects.includes(newAdditionalSubject.trim())) {
+      showToast("Duplicate subject", "This subject already exists");
+      return;
+    }
+
+    setAdditionalSubjects([...additionalSubjects, newAdditionalSubject.trim()]);
+    setNewAdditionalSubject("");
+
+    // Update all existing students with the new additional subject
+    setStudents(students.map(student => ({
+      ...student,
+      additionalMarks: [
+        ...student.additionalMarks,
+        { subject: newAdditionalSubject.trim(), UT: 0, Final: 0, Total: 0 }
+      ]
+    })));
+  };
+
+  const handleDeleteSubject = (index: number) => {
+    const updatedSubjects = subjects.filter((_, i) => i !== index);
+    setSubjects(updatedSubjects);
+
+    setStudents(students.map(student => ({
+      ...student,
+      marks: student.marks.filter((_, i) => i !== index)
+    })));
+
+    showToast("Subject deleted", "The subject has been removed successfully");
+  };
+
+  const handleDeleteAdditionalSubject = (index: number) => {
+    const updatedSubjects = additionalSubjects.filter((_, i) => i !== index);
+    setAdditionalSubjects(updatedSubjects);
+
+    // Update all students by removing the deleted additional subject
+    setStudents(students.map(student => ({
+      ...student,
+      additionalMarks: student.additionalMarks.filter((_, i) => i !== index)
+    })));
+
+    showToast("Additional subject deleted", "The additional subject has been removed successfully");
   };
 
   const handleAddStudent = () => {
@@ -72,34 +195,90 @@ export default function StudentRanking() {
       ...students,
       {
         name: "",
-        rollNumber: "",
-        halfYearlyMarks: 0,
-        finalMarks: 0,
-        averageMarks: 0,
-        percentage: 0,
-      },
+        marks: subjects.map(subject => ({ subject, UT: 0, Final: 0, Total: 0 })),
+        additionalMarks: additionalSubjects.map(subject => ({ subject, UT: 0, Final: 0, Total: 0 })),
+        totalMarks: 0
+      }
     ]);
   };
-
-  const handleInputChange = (index: number, field: keyof Student, value: string | number) => {
+  
+  const handleNameChange = (index: number, value: string) => {
     const updatedStudents = [...students];
-    (updatedStudents[index][field] as typeof value) =
-      typeof value === "number" ? Math.max(0, Math.min(1000, value)) : value;
+    updatedStudents[index].name = value;
     setStudents(updatedStudents);
   };
 
-  const calculateRanking = () => {
-    const updatedStudents = students.map((student) => {
-      const averageMarks = (student.halfYearlyMarks + student.finalMarks) / 2;
-      const percentage = (averageMarks / 1000) * 100;
-      return { ...student, averageMarks, percentage };
-    });
+  const handleMarkChange = (
+    studentIndex: number,
+    subjectIndex: number,
+    type: "UT" | "Final",
+    value: number
+  ) => {
+    const updatedStudents = [...students];
+    const maxMark = type === "UT" ? 100 : 100;
+  
+    if (value < 0 || value > maxMark) {
+      showToast("Invalid marks", `${type} marks should be between 0 and ${maxMark}`);
+      return;
+    }
+  
+    updatedStudents[studentIndex].marks[subjectIndex][type] = value;
+  
+    const UT = updatedStudents[studentIndex].marks[subjectIndex].UT || 0;
+    const Final = updatedStudents[studentIndex].marks[subjectIndex].Final || 0;
+  
+    updatedStudents[studentIndex].marks[subjectIndex].Total = Math.round((UT + Final) / 2);
+  
+    updateTotalMarks(updatedStudents, studentIndex);
+    setStudents(updatedStudents);
+  };
+  
+  const handleAdditionalMarkChange = (
+    studentIndex: number,
+    subjectIndex: number,
+    type: "UT" | "Final",
+    value: number
+  ) => {
+    if (value < 0 || value > 100) {
+      showToast("Invalid marks", "Marks should be between 0 and 100");
+      return;
+    }
+  
+    const updatedStudents = [...students];
+    updatedStudents[studentIndex].additionalMarks[subjectIndex][type] = value;
+  
+    const UT = updatedStudents[studentIndex].additionalMarks[subjectIndex].UT;
+    const Final = updatedStudents[studentIndex].additionalMarks[subjectIndex].Final;
+    updatedStudents[studentIndex].additionalMarks[subjectIndex].Total = Math.round((UT + Final) / 2);
+  
+    updateTotalMarks(updatedStudents, studentIndex);
+    setStudents(updatedStudents);
+  };
+  
 
-    const sortedStudents = [...updatedStudents].sort((a, b) => b.averageMarks - a.averageMarks);
-    let rank = 1,
-      skippedRanks = 0;
+  const updateTotalMarks = (studentsList: Student[], studentIndex: number) => {
+    const student = studentsList[studentIndex];
+    const totalSubjectMarks = student.marks.reduce((sum, subject) => sum + subject.Total, 0);
+    const totalAdditionalMarks = student.additionalMarks.reduce((sum, subject) => sum + subject.Total, 0);
+
+    
+    student.totalMarks = (totalSubjectMarks + totalAdditionalMarks);
+    
+  };
+
+  const calculateRanking = () => {
+    if (students.some(student => !student.name)) {
+      showToast("Missing information", "Please fill in all student names before calculating ranks");
+      return;
+    }
+
+    const sortedStudents = [...students]
+      .map((student) => ({ ...student }))
+      .sort((a, b) => b.totalMarks - a.totalMarks);
+
+    let rank = 1, skippedRanks = 0;
     for (let i = 0; i < sortedStudents.length; i++) {
-      if (i > 0 && sortedStudents[i].averageMarks === sortedStudents[i - 1].averageMarks) {
+      if (i > 0 && sortedStudents[i].totalMarks === sortedStudents[i - 1].totalMarks) {
         skippedRanks++;
       } else {
         rank += skippedRanks;
@@ -108,6 +287,7 @@ export default function StudentRanking() {
       sortedStudents[i].rank = rank;
     }
     setStudents(sortedStudents);
+    
     showToast("Rankings calculated", "Student rankings have been updated successfully");
   };
 
@@ -115,6 +295,10 @@ export default function StudentRanking() {
     const updatedStudents = students.filter((_, i) => i !== index);
     setStudents(updatedStudents);
     showToast("Student removed", "The student has been removed from the list");
+  };
+
+  const calculatePercentage = (marks: number) => {
+    return ((marks / TOTAL_POSSIBLE_MARKS) * 100).toFixed(2);
   };
 
   const downloadPDF = () => {
@@ -131,16 +315,15 @@ export default function StudentRanking() {
     doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 25);
 
     const headers = [
-      ["Name", "Roll Number", "Half-Yearly Marks", "Final Marks", "Average Marks", "Percentage", "Rank"]
+      ["Name", ...subjects, ...additionalSubjects, "Total", "Percentage", "Rank"]
     ];
 
     const data = students.map(student => [
       student.name || "Unnamed",
-      student.rollNumber || "N/A",
-      student.halfYearlyMarks.toString(),
-      student.finalMarks.toString(),
-      student.averageMarks.toString(),
-      `${student.percentage.toFixed(2)}%`,
+      ...student.marks.map(mark => mark.Total.toString()),
+      ...student.additionalMarks.map(mark => mark.toString()),
+      student.totalMarks.toString(),
+      `${calculatePercentage(student.totalMarks)}%`,
       student.rank?.toString() || "-"
     ]);
 
@@ -186,7 +369,7 @@ export default function StudentRanking() {
         <div className="text-center p-6 border-b">
           <h1 className="flex items-center justify-center gap-2 text-3xl font-bold">
             <GraduationCap className="h-8 w-8" />
-            Student Ranking System
+           Super Average
           </h1>
         </div>
         <div className="p-4 border-b bg-gray-50">
@@ -200,9 +383,82 @@ export default function StudentRanking() {
           </div>
         </div>
         <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold mb-4">Main Subjects</h2>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="New subject name"
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded-md"
+                />
+                <button 
+                  onClick={handleAddSubject}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </button>
+              </div>
+              <div className="space-y-2">
+                {subjects.map((subject, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span>{subject}</span>
+                    <button
+                      onClick={() => handleDeleteSubject(index)}
+                      className="p-1 text-red-600 hover:bg-red-100 rounded"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold mb-4">Additional Subjects</h2>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="New additional subject name"
+                  value={newAdditionalSubject}
+                  onChange={(e) => setNewAdditionalSubject(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded-md"
+                />
+                <button 
+                  onClick={handleAddAdditionalSubject}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </button>
+              </div>
+              <div className="space-y-2">
+                {additionalSubjects.map((subject, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span>{subject}</span>
+                    <button
+                      onClick={() => handleDeleteAdditionalSubject(index)}
+                      className="p-1 text-red-600 hover:bg-red-100 rounded"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end gap-4 mb-6">
-            <button onClick={handleAddStudent} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-              <Plus className="h-4 w-4" /> Add Student </button>
+            <button 
+              onClick={handleAddStudent}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4" />
+              Add Student
+            </button>
             <button 
               onClick={calculateRanking}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -228,14 +484,7 @@ export default function StudentRanking() {
                     type="text"
                     placeholder="Student Name"
                     value={student.name}
-                    onChange={(e) => handleInputChange(studentIndex, "name", e.target.value)}
-                    className="flex-1 max-w-md px-3 py-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Roll Number"
-                    value={student.rollNumber}
-                    onChange={(e) => handleInputChange(studentIndex, "rollNumber", e.target.value)}
+                    onChange={(e) => handleNameChange(studentIndex, e.target.value)}
                     className="flex-1 max-w-md px-3 py-2 border rounded-md"
                   />
                   <button
@@ -248,35 +497,65 @@ export default function StudentRanking() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <h3 className="font-semibold mb-4">Half-Yearly Marks</h3>
+                    <h3 className="font-semibold mb-4">Main Subjects</h3>
                     <div className="space-y-4">
-                      <input
-                        type="number"
-                        placeholder="Half-Yearly Marks"
-                        value={student.halfYearlyMarks || ""}
-                        onChange={(e) => handleInputChange(studentIndex, "halfYearlyMarks", Number(e.target.value))}
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
+                      {student.marks.map((subject, subjectIndex) => (
+                        <div key={subjectIndex} className="flex items-center gap-4">
+                          <span className="w-40 text-sm">{subject.subject}</span>
+                          <input
+                            type="number"
+                            placeholder="Half"
+                            value={subject.UT || ""}
+                            onChange={(e) => handleMarkChange(studentIndex, subjectIndex, "UT", Number(e.target.value))}
+                            className="w-20 px-3 py-2 border rounded-md"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Final"
+                            value={subject.Final || ""}
+                            onChange={(e) => handleMarkChange(studentIndex, subjectIndex, "Final", Number(e.target.value))}
+                            className="w-20 px-3 py-2 border rounded-md"
+                          />
+                          <span className="text-sm font-medium">Super Avg: {subject.Total}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold mb-4">Final Marks</h3>
+                    <h3 className="font-semibold mb-4">Additional Subjects</h3>
                     <div className="space-y-4">
-                      <input
-                        type="number"
-                        placeholder="Final Marks"
-                        value={student.finalMarks || ""}
-                        onChange={(e) => handleInputChange(studentIndex, "finalMarks", Number(e.target.value))}
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
+                      {additionalSubjects.map((subject, subjectIndex) => (
+                        <div key={subjectIndex} className="flex items-center gap-4">
+                          <span className="w-40 text-sm">{subject}</span>
+                          <input
+  type="number"
+  placeholder="Half"
+  value={student.additionalMarks[subjectIndex].UT === 0 ? "" : student.additionalMarks[subjectIndex].UT}
+  onChange={(e) => handleAdditionalMarkChange(studentIndex, subjectIndex, "UT", Number(e.target.value))}
+  className="w-20 px-3 py-2 border rounded-md"
+/>
+<input
+  type="number"
+  placeholder="Final"
+  value={student.additionalMarks[subjectIndex].Final === 0 ? "" : student.additionalMarks[subjectIndex].Final}
+  onChange={(e) => handleAdditionalMarkChange(studentIndex, subjectIndex, "Final", Number(e.target.value))}
+  className="w-20 px-3 py-2 border rounded-md"
+/>
+
+<span className="text-sm font-medium">
+  Super Avg: {student.additionalMarks[subjectIndex].Total}
+</span>
+
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 text-right">
                   <span className="text-lg font-bold">
-                    Average: {student.averageMarks} ({student.percentage.toFixed(2)}%)
+                    Total: {student.totalMarks} ({calculatePercentage(student.totalMarks)}%)
                   </span>
                 </div>
               </div>
@@ -293,10 +572,13 @@ export default function StudentRanking() {
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border p-2 text-left">Name</th>
-                      <th className="border p-2 text-left">Roll Number</th>
-                      <th className="border p-2 text-left">Half-Yearly Marks</th>
-                      <th className="border p-2 text-left">Final Marks</th>
-                      <th className="border p-2 text-left">Average Marks</th>
+                      {subjects.map((subject) => (
+                        <th key={subject} className="border p-2 text-left">{subject}</th>
+                      ))}
+                      {additionalSubjects.map((subject) => (
+                        <th key={subject} className="border p-2 text-left">{subject}</th>
+                      ))}
+                      <th className="border p-2 text-left">Total</th>
                       <th className="border p-2 text-left">Percentage</th>
                       <th className="border p-2 text-left">Rank</th>
                     </tr>
@@ -305,11 +587,16 @@ export default function StudentRanking() {
                     {students.map((student, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="border p-2">{student.name || 'Unnamed'}</td>
-                        <td className="border p-2">{student.rollNumber || 'N/A'}</td>
-                        <td className="border p-2">{student.halfYearlyMarks}</td>
-                        <td className="border p-2">{student.finalMarks}</td>
-                        <td className="border p-2 font-medium">{student.averageMarks}</td>
-                        <td className="border p-2 font-medium">{student.percentage.toFixed(2)}%</td>
+                        {student.marks.map((subject, subjectIndex) => (
+                          <td key={subjectIndex} className="border p-2">{subject.Total}</td>
+                        ))}
+                        {student.additionalMarks.map((mark, markIndex) => (
+                          <td key={`additional-${markIndex}`} className="border p-2">
+                            {mark.Total}
+                          </td>
+                        ))}
+                        <td className="border p-2 font-medium">{student.totalMarks}</td>
+                        <td className="border p-2 font-medium">{calculatePercentage(student.totalMarks)}%</td>
                         <td className="border p-2 font-bold">{student.rank ?? "-"}</td>
                       </tr>
                     ))}
